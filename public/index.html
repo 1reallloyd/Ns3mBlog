@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NsemBlog – Live Ghana &amp; World News</title>
-<meta name="description" content="NsemBlog brings you live Ghana news and top world headlines, updated automatically from trusted RSS feeds.">
+<title>NsemBlog – Live Ghana, Nigeria &amp; World News</title>
+<meta name="description" content="NsemBlog brings you live Ghanaian and Nigerian news plus top world headlines, updated automatically from trusted RSS feeds.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600;6..72,700&display=swap" rel="stylesheet">
@@ -228,7 +228,7 @@ footer{border-top:1px solid var(--line);padding:36px 0 44px;color:var(--muted);f
     <div class="bar">
       <a href="#" class="logo" aria-label="NsemBlog home" id="logo">
         <span class="logo-mark">N</span>
-        <span><span class="logo-text">sem<span>Blog</span></span><small>Live stories from Ghana &amp; the world</small></span>
+        <span><span class="logo-text">sem<span>Blog</span></span><small>Live stories from Ghana, Nigeria &amp; the world</small></span>
       </a>
       <label class="search">
         <i class="fas fa-search"></i>
@@ -288,6 +288,9 @@ const SOURCES = [
   { id:'3news',    name:'3News',              region:'ghana', url:'https://3news.com/feed.xml',                         color:'#38bdf8' },
   { id:'citi',     name:'Citi Newsroom',      region:'ghana', url:'https://citinewsroom.com/feed/',                     color:'#f59e0b' },
   { id:'gbn',      name:'Ghana Business News',region:'ghana', url:'https://www.ghanabusinessnews.com/feed/',            color:'#22c55e', cat:'Business' },
+  { id:'channels', name:'Channels TV',         region:'nigeria',url:'https://www.channelstv.com/feed/',                  color:'#2563eb' },
+  { id:'premium',  name:'Premium Times',       region:'nigeria',url:'https://www.premiumtimesng.com/feed',               color:'#b91c1c' },
+  { id:'vanguard', name:'Vanguard',            region:'nigeria',url:'https://www.vanguardngr.com/feed/',                 color:'#15803d' },
   { id:'bbc-af',   name:'BBC Africa',         region:'world', url:'https://feeds.bbci.co.uk/news/world/africa/rss.xml', color:'#ef4444', limit:15 },
   { id:'bbc',      name:'BBC World',          region:'world', url:'https://feeds.bbci.co.uk/news/world/rss.xml',        color:'#dc2626', limit:15 },
   { id:'aj',       name:'Al Jazeera',         region:'world', url:'https://www.aljazeera.com/xml/rss/all.xml',          color:'#f97316', limit:15 },
@@ -396,7 +399,7 @@ function classify(title, cats, src){
 
 function pickImage(n, rawHtml){
   const elements = [...n.getElementsByTagName('*')];
-  const media = elements.filter(e => /^(content|thumbnail)$/i.test(e.localName || e.nodeName.split(':').pop()));
+  const media = elements.filter(e => /^(content|thumbnail|featured)$/i.test(e.localName || e.nodeName.split(':').pop()));
   const enclosures = elements.filter(e => /^(enclosure)$/i.test(e.localName || e.nodeName.split(':').pop()));
   const candidates = [];
   for (const m of media) {
@@ -613,7 +616,7 @@ function cardHtml(it){
       <h3>${esc(it.title)}</h3>
       ${it.summary ? `<p>${esc(it.summary)}</p>` : ''}
       <div class="card-foot">
-        <span class="meta">${it.region === 'ghana' ? '🇬🇭 Ghana' : '🌍 World'}</span>
+        <span class="meta">${it.region === 'ghana' ? '🇬🇭 Ghana' : it.region === 'nigeria' ? '🇳🇬 Nigeria' : '🌍 World'}</span>
         <button class="save ${isSaved(it.id) ? 'on' : ''}" data-save="${it.id}" aria-label="Save story" title="Save story"><i class="${isSaved(it.id) ? 'fas' : 'far'} fa-bookmark"></i></button>
       </div>
     </div>
@@ -670,7 +673,7 @@ function renderContent(){
     html += `<div class="hero">${heroHtml(hero)}<div class="side-list">${side.map(sideItemHtml).join('')}</div></div>`;
   }
   const title = S.savedOnly ? 'Saved stories' : searching ? `Results for “${esc(S.q.trim())}”` :
-    S.region === 'ghana' ? 'Ghana news' : S.region === 'world' ? 'World news' : 'Latest stories';
+    S.region === 'ghana' ? 'Ghana news' : S.region === 'nigeria' ? 'Nigeria news' : S.region === 'world' ? 'World news' : 'Latest stories';
   const icon = S.savedOnly ? 'fa-bookmark' : searching ? 'fa-magnifying-glass' : S.region === 'world' ? 'fa-earth-africa' : 'fa-newspaper';
   const shown = rest.slice(0, PAGE * S.page);
   html += `<div class="section-title"><i class="fas ${icon}"></i>${title}<span class="count">${list.length} ${list.length === 1 ? 'story' : 'stories'}</span></div>
@@ -681,7 +684,7 @@ function renderContent(){
 
 function renderTabs(){
   const cnt = r => S.items.filter(i => r === 'all' || i.region === r).length;
-  const reg = [['all', 'Home'], ['ghana', '🇬🇭 Ghana'], ['world', '🌍 World']];
+  const reg = [['all', 'Home'], ['ghana', '🇬🇭 Ghana'], ['nigeria', '🇳🇬 Nigeria'], ['world', '🌍 World']];
   $('#tabs').innerHTML =
     reg.map(([k, l]) => `<button class="tab ${S.region === k && !S.savedOnly ? 'on' : ''}" data-region="${k}">${l}<span class="n">${S.items.length ? cnt(k) : ''}</span></button>`).join('') +
     `<span class="sep"></span>` +
@@ -712,13 +715,14 @@ function renderSide(){
     const n = S.items.filter(i => i.src === s.id).length;
     return `<button class="src ${S.src === s.id ? 'on' : ''}" data-src="${s.id}" title="${esc(ERRS[s.id] || '')}"><span class="d ${st ? (st.ok ? 'ok' : 'bad') : ''}"></span>${esc(s.name)}<span class="n">${st && !st.ok && !n ? 'offline' : n || ''}</span></button>`;
   }).join('');
-  $('#sources').innerHTML = group('ghana', 'GHANA') + group('world', 'WORLD');
+  $('#sources').innerHTML = group('ghana', 'GHANA') + group('nigeria', 'NIGERIA') + group('world', 'WORLD');
 }
 
 function renderTicker(){
   const g = S.items.filter(i => i.region === 'ghana').slice(0, 8);
+  const n = S.items.filter(i => i.region === 'nigeria').slice(0, 4);
   const w = S.items.filter(i => i.region === 'world').slice(0, 4);
-  const picks = g.concat(w).sort((a, b) => b.ts - a.ts);
+  const picks = g.concat(n, w).sort((a, b) => b.ts - a.ts);
   const tr = $('#tickerTrack');
   if (!picks.length) return;
   const one = picks.map(it => `<button type="button" data-open="${it.id}"><em>${esc((srcById(it.src) || {}).name)}</em>${esc(it.title)}</button>`).join('');

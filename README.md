@@ -1,4 +1,4 @@
-# NsemBlog – live Ghana & world news
+# NsemBlog – live Ghana, Nigeria & world news
 
 The live site entry point is `public/index.html`. The older standalone page is kept in `archive/blog-live.html` for reference.
 
