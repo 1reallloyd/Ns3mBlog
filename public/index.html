@@ -249,8 +249,8 @@ footer{border-top:1px solid var(--line);padding:36px 0 44px;color:var(--muted);f
     <div id="content" aria-live="polite"></div>
     <aside class="side">
       <section class="panel" id="wxPanel">
-        <h4><i class="fas fa-location-dot"></i> Accra right now</h4>
-        <div class="wx"><div class="sk" style="width:100%;height:46px"></div></div>
+        <h4><i class="fas fa-location-dot"></i><span id="wxCity">Weather around the world</span></h4>
+        <div class="wx" aria-live="polite"><div class="sk" style="width:100%;height:46px"></div></div>
       </section>
       <section class="panel">
         <h4><i class="fas fa-bolt"></i> Just in</h4>
@@ -828,6 +828,52 @@ $('#themeBtn').addEventListener('click', () => {
 });
 
 /* ---------- Weather (Open-Meteo, no key) ---------- */
+const WEATHER_CITIES = [
+  { name:'Lagos', lat:6.5244, lon:3.3792 },
+  { name:'Cairo', lat:30.0444, lon:31.2357 },
+  { name:'Johannesburg', lat:-26.2041, lon:28.0473 },
+  { name:'Nairobi', lat:-1.2921, lon:36.8219 },
+  { name:'Accra', lat:5.6037, lon:-0.1870 },
+  { name:'Casablanca', lat:33.5731, lon:-7.5898 },
+  { name:'Cape Town', lat:-33.9249, lon:18.4241 },
+  { name:'Addis Ababa', lat:8.9806, lon:38.7578 },
+  { name:'Abidjan', lat:5.3600, lon:-4.0083 },
+  { name:'Dakar', lat:14.7167, lon:-17.4677 },
+  { name:'Dar es Salaam', lat:-6.7924, lon:39.2083 },
+  { name:'Kigali', lat:-1.9441, lon:30.0619 },
+  { name:'Kampala', lat:0.3476, lon:32.5825 },
+  { name:'Lusaka', lat:-15.3875, lon:28.3228 },
+  { name:'Kinshasa', lat:-4.4419, lon:15.2663 },
+  { name:'Luanda', lat:-8.8390, lon:13.2894 },
+  { name:'Tunis', lat:36.8065, lon:10.1815 },
+  { name:'Algiers', lat:36.7538, lon:3.0588 },
+  { name:'Marrakech', lat:31.6295, lon:-7.9811 },
+  { name:'Abuja', lat:9.0765, lon:7.3986 },
+  { name:'London', lat:51.5072, lon:-0.1276 },
+  { name:'Paris', lat:48.8566, lon:2.3522 },
+  { name:'Berlin', lat:52.5200, lon:13.4050 },
+  { name:'Madrid', lat:40.4168, lon:-3.7038 },
+  { name:'Rome', lat:41.9028, lon:12.4964 },
+  { name:'Amsterdam', lat:52.3676, lon:4.9041 },
+  { name:'Brussels', lat:50.8503, lon:4.3517 },
+  { name:'Lisbon', lat:38.7223, lon:-9.1393 },
+  { name:'Vienna', lat:48.2082, lon:16.3738 },
+  { name:'Prague', lat:50.0755, lon:14.4378 },
+  { name:'Warsaw', lat:52.2297, lon:21.0122 },
+  { name:'Budapest', lat:47.4979, lon:19.0402 },
+  { name:'Dublin', lat:53.3498, lon:-6.2603 },
+  { name:'Athens', lat:37.9838, lon:23.7275 },
+  { name:'Stockholm', lat:59.3293, lon:18.0686 },
+  { name:'Oslo', lat:59.9139, lon:10.7522 },
+  { name:'Copenhagen', lat:55.6761, lon:12.5683 },
+  { name:'Helsinki', lat:60.1699, lon:24.9384 },
+  { name:'Istanbul', lat:41.0082, lon:28.9784 },
+  { name:'Zurich', lat:47.3769, lon:8.5417 },
+];
+const WEATHER_ROTATE_MS = 2 * 60 * 1000;
+let weatherCityIndex = -1;
+let lastWeatherLoadedAt = 0;
+
 function wx(code){
   if (code === 0) return ['Clear sky', 'fa-sun'];
   if (code <= 2) return ['Partly cloudy', 'fa-cloud-sun'];
@@ -840,11 +886,19 @@ function wx(code){
 }
 async function loadWeather(){
   const box = $('#wxPanel .wx');
+  weatherCityIndex = (weatherCityIndex + 1) % WEATHER_CITIES.length;
+  const city = WEATHER_CITIES[weatherCityIndex];
+  lastWeatherLoadedAt = Date.now();
+  $('#wxCity').textContent = city.name + ' right now';
+  box.innerHTML = '<div class="sk" style="width:100%;height:46px"></div>';
   try {
-    const r = JSON.parse(await getText('https://api.open-meteo.com/v1/forecast?latitude=5.56&longitude=-0.2&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m&timezone=auto', 8000));
+    const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + city.lat + '&longitude=' + city.lon + '&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m&timezone=auto';
+    const r = JSON.parse(await getText(url, 8000));
     const c = r.current, [label, icon] = wx(c.weather_code);
     box.innerHTML = `<i class="fas ${icon}"></i><div><div class="t">${Math.round(c.temperature_2m)}°C</div><small>${label} · ${c.relative_humidity_2m}% humidity · ${Math.round(c.wind_speed_10m)} km/h wind</small></div>`;
-  } catch (e) { $('#wxPanel').hidden = true; }
+  } catch (e) {
+    box.innerHTML = '<small>Weather is temporarily unavailable for ' + esc(city.name) + '.</small>';
+  }
 }
 
 /* ---------- Boot ---------- */
@@ -856,11 +910,18 @@ try {
 renderAll();
 refresh(false);
 loadWeather();
+setInterval(() => {
+  if (!document.hidden && Date.now() - lastWeatherLoadedAt >= WEATHER_ROTATE_MS) loadWeather();
+}, WEATHER_ROTATE_MS);
 setInterval(() => { if (!document.hidden) refresh(false); }, REFRESH_MS);
 setInterval(() => {
   document.querySelectorAll('time[data-ts]').forEach(t => { t.textContent = ago(+t.dataset.ts); });
 }, 60000);
-document.addEventListener('visibilitychange', () => { if (!document.hidden && S.updated && Date.now() - S.updated > REFRESH_MS) refresh(false); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  if (Date.now() - lastWeatherLoadedAt >= WEATHER_ROTATE_MS) loadWeather();
+  if (S.updated && Date.now() - S.updated > REFRESH_MS) refresh(false);
+});
 })();
 </script>
 </body>
